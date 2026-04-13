@@ -1156,8 +1156,25 @@ static void usdhc_init_card(struct mmc_host *mmc, struct mmc_card *card)
 	struct sdhci_host *host = mmc_priv(mmc);
 	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
 	struct pltfm_imx_data *imx_data = sdhci_pltfm_priv(pltfm_host);
+	u32 manfid;
 
 	imx_data->init_card_type = card->type;
+
+	/*
+	 * Kingston eMMCs have very large erase timeout multipliers (e.g. 0x05).
+	 * This can cause the MMC core to cap discard_max_bytes to a very
+	 * small value (e.g. 3.5 MiB) to fit within the host's hardware
+	 * timeout limit (~2.6s at 200MHz). Disable hardware timeout to
+	 * allow the MMC core to use a longer software timeout (60s),
+	 * which in turn allows larger, more efficient discards.
+	 * Kingston Manufacturer ID is 0x70.
+	 */
+	manfid = (card->raw_cid[0] >> 24) & 0xFF;
+	if (manfid == 0x70) {
+		pr_info("%s: Kingston eMMC detected, disabling HW timeout\n",
+			mmc_hostname(mmc));
+		host->quirks2 |= SDHCI_QUIRK2_DISABLE_HW_TIMEOUT;
+	}
 }
 
 static int usdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
