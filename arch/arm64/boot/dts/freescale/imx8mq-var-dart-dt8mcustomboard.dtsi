@@ -306,6 +306,7 @@
 		pinctrl-0 = <&pinctrl_pca6408>;
 		interrupt-parent = <&gpio1>;
 		interrupts = <5 IRQ_TYPE_LEVEL_LOW>;
+		status = "disabled";
 	};
 
 	pca6408_2: gpio@21 {

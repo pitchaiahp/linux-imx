@@ -489,6 +489,7 @@ static int pca953x_write_regs(struct pca953x_chip *chip, int reg, unsigned long 
 	for (i = 0; i < NBANK(chip); i++)
 		value[i] = bitmap_get_value8(val, i * BANK_SZ);
 
+	dev_info(&chip->client->dev, "Writing to register 0x%02x (%d banks): %*ph\n", regaddr, NBANK(chip), NBANK(chip), value);
 	ret = regmap_bulk_write(chip->regmap, regaddr, value, NBANK(chip));
 	if (ret < 0) {
 		dev_err(&chip->client->dev, "failed writing register\n");
@@ -510,6 +511,8 @@ static int pca953x_read_regs(struct pca953x_chip *chip, int reg, unsigned long *
 		return ret;
 	}
 
+	dev_info(&chip->client->dev, "Read from register 0x%02x (%d banks): %*ph\n", regaddr, NBANK(chip), NBANK(chip), value);
+
 	for (i = 0; i < NBANK(chip); i++)
 		bitmap_set_value8(val, value[i], i * BANK_SZ);
 
@@ -524,6 +527,7 @@ static int pca953x_gpio_direction_input(struct gpio_chip *gc, unsigned off)
 	int ret;
 
 	mutex_lock(&chip->i2c_lock);
+	dev_info(&chip->client->dev, "Setting GPIO %d as input: writing to direction register 0x%02x, bit %d\n", off, dirreg, off % BANK_SZ);
 	ret = regmap_write_bits(chip->regmap, dirreg, bit, bit);
 	mutex_unlock(&chip->i2c_lock);
 	return ret;
@@ -540,11 +544,13 @@ static int pca953x_gpio_direction_output(struct gpio_chip *gc,
 
 	mutex_lock(&chip->i2c_lock);
 	/* set output level */
+	dev_info(&chip->client->dev, "Setting GPIO %d output level to %d: writing to output register 0x%02x, bit %d\n", off, val, outreg, off % BANK_SZ);
 	ret = regmap_write_bits(chip->regmap, outreg, bit, val ? bit : 0);
 	if (ret)
 		goto exit;
 
 	/* then direction */
+	dev_info(&chip->client->dev, "Setting GPIO %d as output: writing to direction register 0x%02x, bit %d\n", off, dirreg, off % BANK_SZ);
 	ret = regmap_write_bits(chip->regmap, dirreg, bit, 0);
 exit:
 	mutex_unlock(&chip->i2c_lock);
@@ -561,6 +567,7 @@ static int pca953x_gpio_get_value(struct gpio_chip *gc, unsigned off)
 
 	mutex_lock(&chip->i2c_lock);
 	ret = regmap_read(chip->regmap, inreg, &reg_val);
+	dev_info(&chip->client->dev, "Reading input register 0x%02x for GPIO %d\n", inreg, off);
 	mutex_unlock(&chip->i2c_lock);
 	if (ret < 0)
 		return ret;
@@ -575,6 +582,7 @@ static void pca953x_gpio_set_value(struct gpio_chip *gc, unsigned off, int val)
 	u8 bit = BIT(off % BANK_SZ);
 
 	mutex_lock(&chip->i2c_lock);
+	dev_info(&chip->client->dev, "Setting GPIO %d output to %d: writing to output register 0x%02x, bit %d\n", off, val, outreg, off % BANK_SZ);
 	regmap_write_bits(chip->regmap, outreg, bit, val ? bit : 0);
 	mutex_unlock(&chip->i2c_lock);
 }
@@ -589,6 +597,7 @@ static int pca953x_gpio_get_direction(struct gpio_chip *gc, unsigned off)
 
 	mutex_lock(&chip->i2c_lock);
 	ret = regmap_read(chip->regmap, dirreg, &reg_val);
+	dev_info(&chip->client->dev, "Reading direction register 0x%02x for GPIO %d\n", dirreg, off);
 	mutex_unlock(&chip->i2c_lock);
 	if (ret < 0)
 		return ret;
