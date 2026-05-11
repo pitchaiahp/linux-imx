@@ -298,6 +298,7 @@
 
 	pca6408_1: gpio@20 {
 		compatible = "nxp,pcal6408";
+		probe-delay-ms = <200>;
 		standard-regs-fallback;
 		reg = <0x20>;
 		gpio-controller;
@@ -306,7 +307,6 @@
 		pinctrl-0 = <&pinctrl_pca6408>;
 		interrupt-parent = <&gpio1>;
 		interrupts = <5 IRQ_TYPE_LEVEL_LOW>;
-		status = "disabled";
 	};
 
 	pca6408_2: gpio@21 {

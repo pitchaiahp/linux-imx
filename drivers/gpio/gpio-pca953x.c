@@ -10,6 +10,7 @@
 
 #include <linux/acpi.h>
 #include <linux/bitmap.h>
+#include <linux/delay.h>
 #include <linux/gpio/consumer.h>
 #include <linux/gpio/driver.h>
 #include <linux/i2c.h>
@@ -1069,6 +1070,7 @@ static int pca953x_probe(struct i2c_client *client)
 	int irq_base = 0;
 	int ret;
 	u32 invert = 0;
+	u32 probe_delay_ms = 0;
 	struct regulator *reg;
 	const struct regmap_config *regmap_config;
 	DECLARE_BITMAP(int_mask, MAX_LINE);
@@ -1169,6 +1171,12 @@ static int pca953x_probe(struct i2c_client *client)
 	ret = device_reset(&client->dev);
 	if (ret == -EPROBE_DEFER)
 		return -EPROBE_DEFER;
+
+	if (!of_property_read_u32(client->dev.of_node, "probe-delay-ms",
+				  &probe_delay_ms) && probe_delay_ms) {
+		dev_info(&client->dev, "probe delay %u ms\n", probe_delay_ms);
+		msleep(probe_delay_ms);
+	}
 
 	/* initialize cached registers from their original values.
 	 * we can't share this chip with another i2c master.
